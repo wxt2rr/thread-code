@@ -17,10 +17,10 @@ public class ThreadJoin {
          * @param  millis
          *         the time to wait in milliseconds
          *
-         * @throws  IllegalArgumentException
+         * @throws IllegalArgumentException
          *          if the value of {@code millis} is negative
          *
-         * @throws  InterruptedException
+         * @throws InterruptedException
          *          if any thread has interrupted the current thread. The
          *          <i>interrupted status</i> of the current thread is
          *          cleared when this exception is thrown.
@@ -37,7 +37,7 @@ public class ThreadJoin {
          *                             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)) > 0);
          *                 }
          *             } else if (millis == 0) {
-         *                 while (isAlive()) {
+         *                 while (isAlive()) {// 为什么要用while，为了避免虚假唤醒问题
          *                     wait(0);
          *                 }
          *             } else {
@@ -56,16 +56,37 @@ public class ThreadJoin {
          *   }
          *
          *   释放cpu
+         *
+         *
+         *   hotspot源码
+         *   static void ensure_join(JavaThread* thread) {
+         *   // We do not need to grap the Threads_lock, since we are operating on ourself.
+         *   Handle threadObj(thread, thread->threadObj());
+         *   assert(threadObj.not_null(), "java thread object must exist");
+         *   ObjectLocker lock(threadObj, thread);
+         *   // Ignore pending exception (ThreadDeath), since we are exiting anyway
+         *   thread->clear_pending_exception();
+         *   // Thread is exiting. So set thread_status field in  java.lang.Thread class to TERMINATED.
+         *   java_lang_Thread::set_thread_status(threadObj(), java_lang_Thread::TERMINATED);
+         *   // Clear the native thread instance - this makes isAlive return false and allows the join()
+         *   // to complete once we've done the notify_all below
+         *   //这里是清除native线程，这个操作会导致isAlive()方法返回false
+         *   java_lang_Thread::set_thread(threadObj(), NULL);
+         *   lock.notify_all(thread);//注意这里
+         *   // Ignore pending exception (ThreadDeath), since we are exiting anyway
+         *   thread->clear_pending_exception();
+         * }
          */
         Thread a = new Thread(new Runnable() {
             @Override
             public void run() {
                 System.out.println("a run");
                 try {
-                    Thread.sleep(1000*5);
+                    Thread.sleep(1000 * 5);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+                System.out.println("a执行完");
             }
         }, "t-a");
 
@@ -74,8 +95,13 @@ public class ThreadJoin {
             @Override
             public void run() {
                 try {
-                    System.out.println(Thread.currentThread().getName());
-                    a.join();
+                    synchronized (a) {
+                        System.out.println("b run");
+                        // 等着a执行完
+                        //a.join();
+                        // 相当于等着a执行完，这里没有显示的调用notify，但是还是会继续执行，如果换成其他锁对象就不行了
+                        a.wait(0);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

@@ -13,33 +13,33 @@ public class ObjectWaitNotify {
      * had been called. See the specification of the {@link #wait(long, int)} method
      * for details.
      *
-     * @param  timeoutMillis the maximum time to wait, in milliseconds
-     * @throws IllegalArgumentException if {@code timeoutMillis} is negative
+     * @param timeoutMillis the maximum time to wait, in milliseconds
+     * @throws IllegalArgumentException     if {@code timeoutMillis} is negative
      * @throws IllegalMonitorStateException if the current thread is not
-     *         the owner of the object's monitor
-     * @throws InterruptedException if any thread interrupted the current thread before or
-     *         while the current thread was waiting. The <em>interrupted status</em> of the
-     *         current thread is cleared when this exception is thrown.
-     * @see    #notify()
-     * @see    #notifyAll()
-     * @see    #wait()
-     * @see    #wait(long, int)
-     *
+     *                                      the owner of the object's monitor
+     * @throws InterruptedException         if any thread interrupted the current thread before or
+     *                                      while the current thread was waiting. The <em>interrupted status</em> of the
+     *                                      current thread is cleared when this exception is thrown.
+     * @see #notify()
+     * @see #notifyAll()
+     * @see #wait()
+     * @see #wait(long, int)
+     * <p>
      * public final native void wait(long timeoutMillis) throws InterruptedException;
-     *
-     *  释放锁，响应中断，释放cpu，因为wait方法是实例方法，所以只有实例化的对象可以创建，这时就可以对对象锁进行处理，所以会释放锁
-     *
-     *  sleep就是睡一下，但是资源还被你持有；wait就是你等一会，叫别人先干，所以要把资源给到别人
+     * <p>
+     * 释放锁，响应中断，释放cpu，因为wait方法是实例方法，所以只有实例化的对象可以创建，这时就可以对对象锁进行处理，所以会释放锁
+     * <p>
+     * sleep就是正干着呢睡着了，但是资源（锁）还被你持有；wait就是你等一会在干，叫别人先干，所以要把资源给到别人
      */
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws Exception {
         Object obj = new Object();
 
         Thread a = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    synchronized (obj){
+                    synchronized (obj) {
                         // 等待 1000s
                         System.out.println("a wait");
                         obj.wait(0);
@@ -54,9 +54,10 @@ public class ObjectWaitNotify {
         Thread b = new Thread(new Runnable() {
             @Override
             public void run() {
-                synchronized (obj){
+                synchronized (obj) {
                     try {
-                        Thread.sleep(1000 * 1000);
+                        System.out.println("b正在执行");
+                        Thread.sleep(1000 * 5);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -67,6 +68,7 @@ public class ObjectWaitNotify {
             }
         });
 
+        // 保证a先执行，竞争到锁
         BlockingDeque<Thread> queue = new LinkedBlockingDeque<>();
         queue.add(a);
         queue.add(b);

@@ -1,5 +1,6 @@
 package com.wangxt.thread;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -12,9 +13,7 @@ public class ThreadPool {
             executorService.submit(work(i));
         }
 
-
-
-
+        //executorService.execute();
         //executorService.execute();
 
         executorService.shutdown();
